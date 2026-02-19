@@ -8,6 +8,10 @@ interface Coords {
   longitude: number;
 }
 
+interface LocationInfo extends Coords {
+  address: string;
+}
+
 const requestPermission = async (): Promise<boolean> => {
   const { status } = await Location.requestForegroundPermissionsAsync();
   return status === "granted";
@@ -48,23 +52,18 @@ export const isGPSEnabled = async (): Promise<boolean> => {
 const getLocation = async (): Promise<Coords | null> => {
   const granted = await requestPermission();
   if (!granted) return null;
-
   const gpsOn = await isGPSEnabled();
-  if (!gpsOn) {
-    isGPSEnabled();
-    return null;
-  }
+  if (!gpsOn) return null;
+  if (Platform.OS === "android") {
+    const { coords } = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
 
-  if (Platform.OS === "ios") return { latitude: 48.89632, longitude: 2.31852 };
-
-  const { coords } = await Location.getCurrentPositionAsync({
-    accuracy: Location.Accuracy.Balanced,
-  });
-
-  return {
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-  };
+    return {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    };
+  } else return { latitude: 48.89632, longitude: 2.31852 };
 };
 
 /* Track location changes */
@@ -113,34 +112,31 @@ const useLocation = () => {
     longitude: 2.2421,
   });
   const [loading, setLoading] = useState(true);
-  const [ready, setReady] = useState(false); // ✅ signals when done
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let subscriber: Location.LocationSubscription | null = null;
 
     const init = async () => {
       const initialCoords = await getLocation();
-      if (initialCoords) {
-        const currentCoords = {
-          latitude: initialCoords.latitude,
-          longitude: initialCoords.longitude,
-        };
-        setCoords(currentCoords);
+      const currentCoords = {
+        latitude: initialCoords?.latitude ?? 48.89632,
+        longitude: initialCoords?.longitude ?? 2.31852,
+      };
+      setCoords(currentCoords);
 
-        const name = await getLocationName(currentCoords);
-        setAddress(name ?? "");
-        setLoading(false);
-        setReady(true); // ✅ done
+      const name = await getLocationName(currentCoords);
+      setAddress(name ?? "");
+      setLoading(false);
+      setReady(true); // ✅ done
 
-        subscriber = await trackLocation(async (newCoords) => {
-          setCoords(newCoords);
-          const newAddress = await getLocationName(newCoords);
-          setAddress(newAddress ?? "");
-        });
-      } else {
-        console.warn("Location permission denied");
-      }
+      subscriber = await trackLocation(async (newCoords) => {
+        setCoords(newCoords);
+        const newAddress = await getLocationName(newCoords);
+        setAddress(newAddress ?? "");
+      });
     };
+
     init();
 
     return () => subscriber?.remove();

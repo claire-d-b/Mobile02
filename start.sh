@@ -106,6 +106,7 @@ npm install --dev tailwindcss@^3.4.17 prettier-plugin-tailwindcss@^0.5.11 babel-
 npm install mathjs
 
 npm install expo-location react-native-maps expo-intent-launcher
+npm install openmeteo
 
 npx expo start
 # When you start a development server with npx expo start on the start developing page, press i to open the iOS Simulator. Expo CLI will install Expo Go automatically.

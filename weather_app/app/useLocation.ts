@@ -2,14 +2,11 @@ import * as Location from "expo-location";
 import * as IntentLauncher from "expo-intent-launcher";
 import { useState, useEffect } from "react";
 import { Platform, Alert } from "react-native";
+import { fetchWeatherApi } from "openmeteo";
 
 interface Coords {
   latitude: number;
   longitude: number;
-}
-
-interface LocationInfo extends Coords {
-  address: string;
 }
 
 const requestPermission = async (): Promise<boolean> => {
@@ -105,6 +102,78 @@ const getLocationName = async (coords: Coords): Promise<string | null> => {
     .join(", ");
 };
 
+interface WeatherParams {
+  latitude: number;
+  longitude: number;
+  hourly: string;
+  current: string;
+}
+
+const getWeather = async ({
+  latitude,
+  longitude,
+  hourly,
+  current,
+}: WeatherParams): Promise<string | null> => {
+  const params = { latitude, longitude, hourly, current };
+  const url = "https://api.open-meteo.com/v1/forecast";
+  const responses = await fetchWeatherApi(url, params);
+
+  // Process first location. Add a for-loop for multiple locations or weather models
+  const response = responses[0];
+
+  // Attributes for timezone and location
+  const nlatitude = response.latitude();
+  const nlongitude = response.longitude();
+  const elevation = response.elevation();
+  const utcOffsetSeconds = response.utcOffsetSeconds();
+
+  const coordinates: Coords = { latitude: nlatitude, longitude: nlongitude };
+  const name = await getLocationName(coordinates);
+
+  console.log(
+    `\nCoordinates: ${nlatitude}°N ${nlongitude}°E`,
+    `\nName: ${name}`,
+    `\nElevation: ${elevation}m asl`,
+    `\nTimezone difference to GMT+0: ${utcOffsetSeconds}s`,
+  );
+
+  const ncurrent = response.current()!;
+  const nhourly = response.hourly()!;
+
+  const weatherData = {
+    current: {
+      time: new Date((Number(ncurrent.time()) + utcOffsetSeconds) * 1000),
+      temperature_2m: ncurrent.variables(0)!.value(),
+    },
+    hourly: {
+      time: Array.from(
+        {
+          length:
+            (Number(nhourly.timeEnd()) - Number(nhourly.time())) /
+            nhourly.interval(),
+        },
+        (_, i) =>
+          new Date(
+            (Number(nhourly.time()) +
+              i * nhourly.interval() +
+              utcOffsetSeconds) *
+              1000,
+          ),
+      ),
+      temperature_2m: nhourly.variables(0)!.valuesArray(),
+    },
+  };
+
+  // The 'weatherData' object now contains a simple structure, with arrays of datetimes and weather information
+  console.log(
+    `\nCurrent time: ${weatherData.current.time}\n`,
+    weatherData.current.temperature_2m,
+  );
+  console.log("\nHourly data:\n", weatherData.hourly);
+  return name;
+};
+
 const useLocation = () => {
   const [address, setAddress] = useState<string>("");
   const [coords, setCoords] = useState<Coords>({
@@ -112,7 +181,16 @@ const useLocation = () => {
     longitude: 2.2421,
   });
   const [loading, setLoading] = useState(true);
-  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    (getWeather({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      hourly: "temperature_2m",
+      current: "temperature_2m",
+    }),
+      [location]);
+  });
 
   useEffect(() => {
     let subscriber: Location.LocationSubscription | null = null;
@@ -128,7 +206,6 @@ const useLocation = () => {
       const name = await getLocationName(currentCoords);
       setAddress(name ?? "");
       setLoading(false);
-      setReady(true); // ✅ done
 
       subscriber = await trackLocation(async (newCoords) => {
         setCoords(newCoords);

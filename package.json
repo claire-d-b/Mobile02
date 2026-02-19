@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "expo-intent-launcher": "^13.0.8"
+    "expo-intent-launcher": "^13.0.8",
+    "openmeteo": "^1.2.3"
   }
 }
