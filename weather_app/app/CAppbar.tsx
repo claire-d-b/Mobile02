@@ -1,7 +1,7 @@
 import * as Location from "expo-location";
 import React, { useState, useEffect, use } from "react";
 import { View, ActivityIndicator, BlurEvent } from "react-native";
-import { Appbar, Text, IconButton, Icon } from "react-native-paper";
+import { Appbar, Text, IconButton, Icon, Menu } from "react-native-paper";
 import { evaluate } from "mathjs";
 import CTextInput from "./CTextInput";
 import CBottomNav from "./CBottomNav";
@@ -38,14 +38,14 @@ export default function CAppbar() {
 
   useEffect(() => {
     const fetchPlaces = async () => {
-      const list = await getPlacesList(location);
+      const list = await getPlacesList(address);
       console.log("list", list);
       setPlacesList(list);
     };
 
     fetchPlaces();
     console.log(placesList);
-  }, [location]); // also changed to depend on location, not address
+  }, [address]); // also changed to depend on location, not address
 
   return (
     <View
@@ -125,6 +125,25 @@ export default function CAppbar() {
             flexDirection: "column",
           }}
         >
+          {!!placesList.length &&
+            placesList.map((p, i) => {
+              return (
+                <View key={`place_${i}`} style={{ display: "flex" }}>
+                  <Menu.Item
+                    title={
+                      <>
+                        <Text
+                          style={{ fontWeight: "bold" }}
+                        >{`${p.name}, `}</Text>
+                        <Text>{`${p.admin1}, `}</Text>
+                        <Text>{`${p.country}`}</Text>
+                      </>
+                    }
+                  ></Menu.Item>
+                </View>
+              );
+            })}
+
           <CBottomNav
             location={location}
             style={{
