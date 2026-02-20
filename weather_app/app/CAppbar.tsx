@@ -1,11 +1,11 @@
 import * as Location from "expo-location";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { View, ActivityIndicator, BlurEvent } from "react-native";
 import { Appbar, Text, IconButton, Icon } from "react-native-paper";
 import { evaluate } from "mathjs";
 import CTextInput from "./CTextInput";
 import CBottomNav from "./CBottomNav";
-import useLocation from "./useLocation";
+import { useLocation, getPlacesList } from "./useLocation";
 
 const messages = [
   "7",
@@ -34,6 +34,18 @@ export default function CAppbar() {
   const { address: detectedAddress } = useLocation();
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
+  const [placesList, setPlacesList] = useState([]);
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      const list = await getPlacesList(location);
+      console.log("list", list);
+      setPlacesList(list);
+    };
+
+    fetchPlaces();
+    console.log(placesList);
+  }, [location]); // also changed to depend on location, not address
 
   return (
     <View

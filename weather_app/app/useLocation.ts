@@ -174,7 +174,15 @@ const getWeather = async ({
   return name;
 };
 
-const useLocation = () => {
+export const getPlacesList = async (location: string) => {
+  if (!location) return [];
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${location}&count=10&language=en&format=json`;
+  const response = await fetch(url);
+  const data = await response.json();
+  return data.results ?? [];
+};
+
+export const useLocation = () => {
   const [address, setAddress] = useState<string>("");
   const [coords, setCoords] = useState<Coords>({
     latitude: 48.8397,
