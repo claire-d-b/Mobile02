@@ -30,11 +30,20 @@ const messages = [
   "",
 ];
 
+interface Place {
+  name: string;
+  admin1: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
+
 export default function CAppbar() {
   const { address: detectedAddress } = useLocation();
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
-  const [placesList, setPlacesList] = useState([]);
+  const [placesList, setPlacesList] = useState<Place[]>([]);
+
 
   useEffect(() => {
     const fetchPlaces = async () => {
