@@ -14,53 +14,51 @@ const requestPermission = async (): Promise<boolean> => {
   return status === "granted";
 };
 
-export const isGPSEnabled = async (): Promise<boolean> => {
+const checkGPSEnabled = async (): Promise<boolean> => {
+  return await Location.hasServicesEnabledAsync();
+};
+
+const promptEnableGPS = (): void => {
   Alert.alert(
     "GPS Settings",
     "Please enable location services to detect your position.",
     [
       {
-        text: "Allow",
+        text: "Open Settings",
         onPress: () => {
           if (Platform.OS === "android") {
             IntentLauncher.startActivityAsync(
               IntentLauncher.ActivityAction.LOCATION_SOURCE_SETTINGS,
             );
           } else {
-            Location.enableNetworkProviderAsync(); // iOS
+            Location.enableNetworkProviderAsync();
           }
         },
       },
-      {
-        text: "Do not allow",
-        onPress: () => {
-          console.warn("No permission to use GPS.");
-        },
-      },
+      { text: "Cancel", style: "cancel" },
     ],
   );
-
-  const enabled = await Location.hasServicesEnabledAsync();
-  return enabled;
 };
-
-/* Get current location */
 
 const getLocation = async (): Promise<Coords | null> => {
   const granted = await requestPermission();
   if (!granted) return null;
-  const gpsOn = await isGPSEnabled();
-  if (!gpsOn) return null;
-  if (Platform.OS === "android") {
+
+  const gpsOn = await checkGPSEnabled();
+  if (!gpsOn) {
+    promptEnableGPS();
+    return null;
+  }
+
+  try {
     const { coords } = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
-
-    return {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-    };
-  } else return { latitude: 48.89632, longitude: 2.31852 };
+    return { latitude: coords.latitude, longitude: coords.longitude };
+  } catch (e) {
+    console.warn("Could not get position:", e);
+    return null;
+  }
 };
 
 /* Track location changes */
@@ -107,6 +105,7 @@ interface WeatherParams {
   longitude: number;
   hourly: string;
   current: string;
+  setAddress: Function;
 }
 
 const getWeather = async ({
@@ -114,6 +113,7 @@ const getWeather = async ({
   longitude,
   hourly,
   current,
+  setAddress,
 }: WeatherParams): Promise<string | null> => {
   const params = { latitude, longitude, hourly, current };
   const url = "https://api.open-meteo.com/v1/forecast";
@@ -137,6 +137,8 @@ const getWeather = async ({
     `\nElevation: ${elevation}m asl`,
     `\nTimezone difference to GMT+0: ${utcOffsetSeconds}s`,
   );
+
+  setAddress(name)
 
   const ncurrent = response.current()!;
   const nhourly = response.hourly()!;
@@ -191,14 +193,15 @@ export const useLocation = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (getWeather({
+    getWeather({
       latitude: coords.latitude,
       longitude: coords.longitude,
       hourly: "temperature_2m",
       current: "temperature_2m",
+      setAddress: setAddress,
     }),
-      [location]);
-  });
+      [address]}
+  );
 
   useEffect(() => {
     let subscriber: Location.LocationSubscription | null = null;
