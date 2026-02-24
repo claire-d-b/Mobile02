@@ -47,6 +47,8 @@ const CurrRoute = ({location, data}: RouteProps) => (
     <View style={{ padding: 35 }}>
       <Text>{location}</Text>
       <Text>{getWeatherCode(data?.current.weather_code)}</Text>
+      <Text>{data?.current.temperature_2m.toFixed(1)}°C</Text>
+      <Text>{data?.current.wind_speed_10m.toFixed(1)}km/h</Text>
     </View>
   </View>
 );
