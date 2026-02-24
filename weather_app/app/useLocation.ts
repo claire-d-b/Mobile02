@@ -137,7 +137,6 @@ export const useLocation = () => {
   const [coords, setCoords] = useState<Coords>({ latitude: 48.8397, longitude: 2.2421 });
   const [weatherData, setWeatherData] = useState<Awaited<ReturnType<typeof getWeather>>>(null);
   const [loading, setLoading] = useState(true);
-
   // Fetch forecast weather when coords change
   useEffect(() => {
     getWeather({
@@ -184,7 +183,7 @@ export const useLocation = () => {
 
     init();
     return () => subscriber?.remove();
-  }, []);
+  }, [coords]);
 
   return { address, coords, weatherData, loading };
 };
