@@ -3,6 +3,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { useState, useEffect } from "react";
 import { Platform, Alert } from "react-native";
 import { fetchWeatherApi } from "openmeteo";
+import { getWeatherEnsembleData } from "./ensemble";
 
 interface Coords {
   latitude: number;
@@ -61,41 +62,22 @@ const getLocation = async (): Promise<Coords | null> => {
   }
 };
 
-/* Track location changes */
 export const trackLocation = async (
   onChange: (coords: Coords) => void,
 ): Promise<Location.LocationSubscription | null> => {
   const granted = await requestPermission();
   if (!granted) return null;
 
-  const subscriber = await Location.watchPositionAsync(
-    {
-      accuracy: Location.Accuracy.High,
-      timeInterval: 5000, // every 5 seconds
-      distanceInterval: 10, // or every 10 meters
-    },
-    ({ coords }) => {
-      onChange({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
-    },
+  return await Location.watchPositionAsync(
+    { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+    ({ coords }) => onChange({ latitude: coords.latitude, longitude: coords.longitude }),
   );
-
-  return subscriber;
 };
 
 const getLocationName = async (coords: Coords): Promise<string | null> => {
   const [place] = await Location.reverseGeocodeAsync(coords);
   if (!place) return null;
-
-  return [
-    place.streetNumber,
-    place.street,
-    place.city,
-    place.region,
-    place.country,
-  ]
+  return [place.streetNumber, place.street, place.city, place.region, place.country]
     .filter(Boolean)
     .join(", ");
 };
@@ -103,106 +85,81 @@ const getLocationName = async (coords: Coords): Promise<string | null> => {
 interface WeatherParams {
   latitude: number;
   longitude: number;
-  hourly: string;
+  hourly: string[];
   current: string;
-  setAddress: Function;
 }
 
-const getWeather = async ({
-  latitude,
-  longitude,
-  hourly,
-  current,
-  setAddress,
-}: WeatherParams): Promise<string | null> => {
-  const params = { latitude, longitude, hourly, current };
-  const url = "https://api.open-meteo.com/v1/forecast";
-  const responses = await fetchWeatherApi(url, params);
+const getWeather = async ({ latitude, longitude, hourly, current }: WeatherParams) => {
+  try {
+    const params = { latitude, longitude, hourly, current };
+    const url = "https://api.open-meteo.com/v1/forecast";
+    const responses = await fetchWeatherApi(url, params);
+    const response = responses[0];
 
-  // Process first location. Add a for-loop for multiple locations or weather models
-  const response = responses[0];
+    const utcOffsetSeconds = response.utcOffsetSeconds();
+    const ncurrent = response.current()!;
+    const nhourly = response.hourly()!;
 
-  // Attributes for timezone and location
-  const nlatitude = response.latitude();
-  const nlongitude = response.longitude();
-  const elevation = response.elevation();
-  const utcOffsetSeconds = response.utcOffsetSeconds();
-
-  const coordinates: Coords = { latitude: nlatitude, longitude: nlongitude };
-  const name = await getLocationName(coordinates);
-
-  console.log(
-    `\nCoordinates: ${nlatitude}°N ${nlongitude}°E`,
-    `\nName: ${name}`,
-    `\nElevation: ${elevation}m asl`,
-    `\nTimezone difference to GMT+0: ${utcOffsetSeconds}s`,
-  );
-
-  setAddress(name)
-
-  const ncurrent = response.current()!;
-  const nhourly = response.hourly()!;
-
-  const weatherData = {
-    current: {
-      time: new Date((Number(ncurrent.time()) + utcOffsetSeconds) * 1000),
-      temperature_2m: ncurrent.variables(0)!.value(),
-    },
-    hourly: {
-      time: Array.from(
-        {
-          length:
-            (Number(nhourly.timeEnd()) - Number(nhourly.time())) /
-            nhourly.interval(),
-        },
-        (_, i) =>
-          new Date(
-            (Number(nhourly.time()) +
-              i * nhourly.interval() +
-              utcOffsetSeconds) *
-              1000,
-          ),
-      ),
-      temperature_2m: nhourly.variables(0)!.valuesArray(),
-    },
-  };
-
-  // The 'weatherData' object now contains a simple structure, with arrays of datetimes and weather information
-  console.log(
-    `\nCurrent time: ${weatherData.current.time}\n`,
-    weatherData.current.temperature_2m,
-  );
-  console.log("\nHourly data:\n", weatherData.hourly);
-  return name;
+    return {
+      current: {
+        time: new Date((Number(ncurrent.time()) + utcOffsetSeconds) * 1000),
+        temperature_2m: ncurrent.variables(0)!.value(),
+      },
+      hourly: {
+        time: Array.from(
+          { length: (Number(nhourly.timeEnd()) - Number(nhourly.time())) / nhourly.interval() },
+          (_, i) => new Date((Number(nhourly.time()) + i * nhourly.interval() + utcOffsetSeconds) * 1000),
+        ),
+        temperature_2m: nhourly.variables(0)!.valuesArray(),
+      },
+    };
+  } catch (e) {
+    console.error("Weather fetch failed:", e);
+    return null;
+  }
 };
 
 export const getPlacesList = async (location: string) => {
   if (!location) return [];
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${location}&count=10&language=en&format=json`;
-  const response = await fetch(url);
-  const data = await response.json();
-  return data.results ?? [];
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${location}&count=10&language=en&format=json`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data.results ?? [];
+  } catch (e) {
+    console.error("Places fetch failed:", e);
+    return [];
+  }
 };
 
 export const useLocation = () => {
   const [address, setAddress] = useState<string>("");
-  const [coords, setCoords] = useState<Coords>({
-    latitude: 48.8397,
-    longitude: 2.2421,
-  });
+  const [coords, setCoords] = useState<Coords>({ latitude: 48.8397, longitude: 2.2421 });
+  const [weatherData, setWeatherData] = useState<Awaited<ReturnType<typeof getWeather>>>(null);
   const [loading, setLoading] = useState(true);
 
+  // Fetch forecast weather when coords change
   useEffect(() => {
     getWeather({
       latitude: coords.latitude,
       longitude: coords.longitude,
-      hourly: "temperature_2m",
+      hourly: ["temperature_2m"],
       current: "temperature_2m",
-      setAddress: setAddress,
-    }),
-      [address]}
-  );
+    }).then(setWeatherData);
+  }, [coords]);
 
+  // Fetch ensemble weather when coords change
+  useEffect(() => {
+    getWeatherEnsembleData({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      daily: ["temperature_2m_min", "temperature_2m_mean", "temperature_2m_max", "precipitation_sum", "precipitation_hours", "snowfall_sum", "rain_sum", "wind_speed_10m_mean", "wind_speed_10m_min", "wind_speed_10m_max"],
+      hourly: ["temperature_2m", "weather_code", "precipitation", "rain", "snowfall", "cloud_cover", "wind_speed_10m"],
+      models: "icon_seamless_eps",
+    });
+  }, [coords]);
+
+  // Get location on mount and track changes
   useEffect(() => {
     let subscriber: Location.LocationSubscription | null = null;
 
@@ -226,11 +183,10 @@ export const useLocation = () => {
     };
 
     init();
-
     return () => subscriber?.remove();
   }, []);
 
-  return { address };
+  return { address, coords, weatherData, loading };
 };
 
 export default useLocation;
