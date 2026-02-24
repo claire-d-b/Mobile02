@@ -1,4 +1,4 @@
-const getWeatherCode = (code: number | undefined) => {
+const getWeatherCode = (code: Float32Array | number | undefined | null) => {
     switch(code) {
         case 0:
             return "Clear sky";

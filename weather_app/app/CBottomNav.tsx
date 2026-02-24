@@ -46,13 +46,24 @@ const CurrRoute = ({location, data}: RouteProps) => (
     <Text>Currently</Text>
     <View style={{ padding: 35 }}>
       <Text>{location}</Text>
-      <Text>{getWeatherCode(data?.current.weather_code)}</Text>
+      <Text>{getWeatherCode(data?.current?.weather_code)}</Text>
       <Text>{data?.current.temperature_2m.toFixed(1)}°C</Text>
       <Text>{data?.current.wind_speed_10m.toFixed(1)}km/h</Text>
     </View>
   </View>
 );
-const TodayRoute = ({location, data}: RouteProps) => (
+
+interface TodayRouteProps {
+  location: string;
+  todayHourly: {
+    time: Date;
+    temperature_2m: number | undefined;
+    weather_code: number | undefined;
+    wind_speed_10m: number | undefined;
+  }[];
+}
+
+const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
   <View
     style={{
       width: "100%",
@@ -65,8 +76,16 @@ const TodayRoute = ({location, data}: RouteProps) => (
     }}
   >
     <Text>Today</Text>
-    <View style={{ padding: 35 }}>
-      <Text>{data?.hourly.weather_code}</Text>
+    <View style={{ width: "100%", height: "100%", overflow: "scroll" }}>
+      <Text>{location}</Text>
+      <Text>{getWeatherCode(todayHourly?.[0].weather_code)}</Text>
+      { !!todayHourly?.length && todayHourly.map((h, i) => {
+        return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
+        <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text>{h.temperature_2m?.toFixed(1)}°C</Text>
+        <Text>{h.wind_speed_10m?.toFixed(1)}km/h</Text>
+        </View>
+      )})}
     </View>
   </View>
 );
@@ -97,6 +116,7 @@ interface Props {
 }
 
 const CBottomNav = ({ location, weatherData, style }: Props) => {
+  const today = new Date();
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
     {
@@ -119,9 +139,22 @@ const CBottomNav = ({ location, weatherData, style }: Props) => {
     },
   ]);
 
+  const todayHourly = weatherData?.hourly.time
+    .map((time, i) => ({
+      time,
+      temperature_2m: weatherData.hourly.temperature_2m?.[i],
+      weather_code: weatherData.hourly.weather_code?.[i],
+      wind_speed_10m: weatherData.hourly.wind_speed_10m?.[i],
+    }))
+    .filter(({ time }) => {
+      const timeUTC = Date.UTC(time.getUTCFullYear(), time.getUTCMonth(), time.getUTCDate());
+      const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+      return timeUTC === todayUTC;
+})
+
   const renderScene = BottomNavigation.SceneMap({
     currently: () => <CurrRoute location={location} data={weatherData} />,
-    today: () => <TodayRoute location={location} data={weatherData} />,
+    today: () => <TodayRoute location={location} todayHourly={todayHourly} />,
     weekly: () => <WeeklyRoute location={location} data={weatherData} />,
   });
 
