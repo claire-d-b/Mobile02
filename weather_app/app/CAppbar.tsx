@@ -5,7 +5,7 @@ import { Appbar, Text, IconButton, Icon, Menu } from "react-native-paper";
 import { evaluate } from "mathjs";
 import CTextInput from "./CTextInput";
 import CBottomNav from "./CBottomNav";
-import { useLocation, getPlacesList } from "./useLocation";
+import { useLocation, getPlacesList, getLocationName } from "./useLocation";
 
 const messages = [
   "7",
@@ -34,6 +34,11 @@ interface Place {
   name: string;
   admin1: string;
   country: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface Coordinates {
   latitude: number;
   longitude: number;
 }
@@ -147,7 +152,7 @@ export default function CAppbar() {
                         <Text>{`${p.admin1}, `}</Text>
                         <Text>{`${p.country}`}</Text>
                       </>
-                    }
+                    } onPress={_ => {setLocation(`${p.name}, ${p.admin1}, ${p.country}`); console.log("loc", location)} }
                   ></Menu.Item>
                 </View>
               );

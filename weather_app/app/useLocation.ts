@@ -74,7 +74,7 @@ export const trackLocation = async (
   );
 };
 
-const getLocationName = async (coords: Coords): Promise<string | null> => {
+export const getLocationName = async (coords: Coords): Promise<string | null> => {
   const [place] = await Location.reverseGeocodeAsync(coords);
   if (!place) return null;
   return [place.streetNumber, place.street, place.city, place.region, place.country]
