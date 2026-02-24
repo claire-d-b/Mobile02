@@ -48,6 +48,7 @@ export default function CAppbar() {
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [placesList, setPlacesList] = useState<Place[]>([]);
+  const [visible, setVisible] = useState(true)
 
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function CAppbar() {
             onBlur={(e: any) => {
               setLocation(address);
             }}
-            onChangeText={(text: string) => setAddress(text)}
+            onChangeText={(text: string) => {setAddress(text); setVisible(true)}}
             textColor="white"
             label="Location"
             msg={address}
@@ -139,7 +140,7 @@ export default function CAppbar() {
             flexDirection: "column",
           }}
         >
-          {!!placesList.length &&
+          {visible && !!placesList.length &&
             placesList.map((p, i) => {
               return (
                 <View key={`place_${i}`} style={{ display: "flex" }}>
@@ -152,7 +153,7 @@ export default function CAppbar() {
                         <Text>{`${p.admin1}, `}</Text>
                         <Text>{`${p.country}`}</Text>
                       </>
-                    } onPress={_ => {setLocation(`${p.name}, ${p.admin1}, ${p.country}`); console.log("loc", location)} }
+                    } onPress={_ => {setLocation(`${p.name}, ${p.admin1}, ${p.country}`); console.log("loc", location); setVisible(false);}}
                   ></Menu.Item>
                 </View>
               );
