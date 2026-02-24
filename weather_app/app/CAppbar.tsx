@@ -159,12 +159,13 @@ export default function CAppbar() {
               );
             })}
 
-          <CBottomNav
+          { !visible && <CBottomNav
             location={location}
             style={{
+              height: "100%",
               paddingBottom: 40,
             }}
-          />
+          /> }
         </View>
       </View>
     </View>
