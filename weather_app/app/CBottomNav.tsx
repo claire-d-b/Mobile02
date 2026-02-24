@@ -44,7 +44,7 @@ const CurrRoute = ({location, data}: RouteProps) => (
     }}
   >
     <Text>Currently</Text>
-    <View style={{ padding: 35 }}>
+    <View style={{ padding: 20 }}>
       <Text>{location}</Text>
       <Text>{getWeatherCode(data?.current?.weather_code)}</Text>
       <Text>{data?.current.temperature_2m.toFixed(1)}°C</Text>
@@ -63,6 +63,17 @@ interface TodayRouteProps {
   }[];
 }
 
+interface WeeklyRouteProps {
+  location: string;
+  weekly: {
+    time: Date;
+    temperature_2m_max: number | undefined;
+    temperature_2m_min: number | undefined;
+    weather_code: number | undefined;
+    wind_speed_10m_max: number | undefined;
+  }[];
+}
+
 const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
   <View
     style={{
@@ -76,11 +87,11 @@ const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
     }}
   >
     <Text>Today</Text>
-    <View style={{ width: "100%", height: "100%", overflow: "scroll" }}>
+    <View style={{ padding: 20, width: "100%", height: "100%", overflow: "scroll" }}>
       <Text>{location}</Text>
       <Text>{getWeatherCode(todayHourly?.[0].weather_code)}</Text>
       { !!todayHourly?.length && todayHourly.map((h, i) => {
-        return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
+        return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
         <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
         <Text>{h.temperature_2m?.toFixed(1)}°C</Text>
         <Text>{h.wind_speed_10m?.toFixed(1)}km/h</Text>
@@ -90,7 +101,7 @@ const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
   </View>
 );
 
-const WeeklyRoute = ({location, data}: RouteProps) => (
+const WeeklyRoute = ({location, weekly}: WeeklyRouteProps) => (
   <View
     style={{
       width: "100%",
@@ -103,9 +114,16 @@ const WeeklyRoute = ({location, data}: RouteProps) => (
     }}
   >
     <Text>Weekly</Text>
-    <View style={{ padding: 35 }}>
-      <Text>{data?.daily.weather_code}</Text>
+    <View style={{ padding: 20 }}>
+      { !!weekly?.length && weekly.map((h, i) => {
+        return (<View key={`weekly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
+        <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text>{h.temperature_2m_min?.toFixed(1)}°C</Text>
+        <Text>{h.temperature_2m_max?.toFixed(1)}km/h</Text>
+        </View>
+      )})}
     </View>
+    <Text>{getWeatherCode(weekly?.[0].weather_code)}</Text>
   </View>
 );
 
@@ -150,12 +168,20 @@ const CBottomNav = ({ location, weatherData, style }: Props) => {
       const timeUTC = Date.UTC(time.getUTCFullYear(), time.getUTCMonth(), time.getUTCDate());
       const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
       return timeUTC === todayUTC;
-})
+}) ?? []
+  const weekly = weatherData?.daily.time.map((time, i) => ({
+  time,
+  temperature_2m_max: weatherData.daily.temperature_2m_max?.[i],
+  temperature_2m_min: weatherData.daily.temperature_2m_min?.[i],
+  weather_code: weatherData.daily.weather_code?.[i],
+  wind_speed_10m_max: weatherData.daily.wind_speed_10m_max?.[i],
+})) ?? [];
+
 
   const renderScene = BottomNavigation.SceneMap({
     currently: () => <CurrRoute location={location} data={weatherData} />,
     today: () => <TodayRoute location={location} todayHourly={todayHourly} />,
-    weekly: () => <WeeklyRoute location={location} data={weatherData} />,
+    weekly: () => <WeeklyRoute location={location} weekly={weekly} />,
   });
 
   return (
