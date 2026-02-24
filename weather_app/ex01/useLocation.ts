@@ -54,7 +54,7 @@ const getLocation = async (): Promise<Coords | null> => {
   try {
     const { coords } = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
-    }) || { latitude: 48.8397, longitude: 2.2421 };
+    });
     return { latitude: coords.latitude, longitude: coords.longitude };
   } catch (e) {
     console.warn("Could not get position:", e);
@@ -145,18 +145,18 @@ export const useLocation = () => {
       hourly: ["temperature_2m"],
       current: "temperature_2m",
     }).then(setWeatherData);
-  }, []);
+  }, [coords]);
 
   // Fetch ensemble weather when coords change
   useEffect(() => {
     getWeatherEnsembleData({
       latitude: coords.latitude,
       longitude: coords.longitude,
-      daily: ["weather_code", "temperature_2m_max", "temperature_2m_min", "wind_speed_10m_max"],
-      hourly: ["temperature_2m", "weather_code", "wind_speed_10m"],
-      current: ["temperature_2m", "weather_code", "wind_speed_10m"],
+      daily: ["temperature_2m_min", "temperature_2m_mean", "temperature_2m_max", "precipitation_sum", "precipitation_hours", "snowfall_sum", "rain_sum", "wind_speed_10m_mean", "wind_speed_10m_min", "wind_speed_10m_max"],
+      hourly: ["temperature_2m", "weather_code", "precipitation", "rain", "snowfall", "cloud_cover", "wind_speed_10m"],
+      models: "icon_seamless_eps",
     });
-  }, []);
+  }, [coords]);
 
   // Get location on mount and track changes
   useEffect(() => {
@@ -183,7 +183,7 @@ export const useLocation = () => {
 
     init();
     return () => subscriber?.remove();
-  }, []);
+  }, [coords]);
 
   return { address, coords, weatherData, loading };
 };
