@@ -44,7 +44,7 @@ const CurrRoute = ({location, data}: RouteProps) => (
     }}
   >
     <Text>Currently</Text>
-    <View style={{ padding: 20, width: "100%" }}>
+    <View style={{ padding: 20 }}>
       <Text>{location}</Text>
       <Text>{getWeatherCode(data?.current?.weather_code)}</Text>
       <Text>{data?.current.temperature_2m.toFixed(1)}°C</Text>
@@ -87,11 +87,11 @@ const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
     }}
   >
     <Text>Today</Text>
-    <View style={{ padding: 20, width: "100%", width: "100%", height: "100%", overflow: "scroll" }}>
+    <View style={{ padding: 20, width: "100%", height: "100%", overflow: "scroll" }}>
       <Text>{location}</Text>
       <Text>{getWeatherCode(todayHourly?.[0].weather_code)}</Text>
       { !!todayHourly?.length && todayHourly.map((h, i) => {
-        return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
+        return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
         <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
         <Text>{h.temperature_2m?.toFixed(1)}°C</Text>
         <Text>{h.wind_speed_10m?.toFixed(1)}km/h</Text>
@@ -114,9 +114,9 @@ const WeeklyRoute = ({location, weekly}: WeeklyRouteProps) => (
     }}
   >
     <Text>Weekly</Text>
-    <View style={{ padding: 20, width: "100%" }}>
+    <View style={{ padding: 20 }}>
       { !!weekly?.length && weekly.map((h, i) => {
-        return (<View key={`weekly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
+        return (<View key={`weekly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
         <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
         <Text>{h.temperature_2m_min?.toFixed(1)}°C</Text>
         <Text>{h.temperature_2m_max?.toFixed(1)}km/h</Text>
