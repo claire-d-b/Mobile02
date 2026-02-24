@@ -48,18 +48,18 @@ export default function CAppbar() {
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [placesList, setPlacesList] = useState<Place[]>([]);
-  const [visible, setVisible] = useState(true)
+  const [visible, setVisible] = useState(false)
 
 
   useEffect(() => {
     const fetchPlaces = async () => {
       const list = await getPlacesList(address);
-      console.log("list", list);
+      // console.log("list", list);
       setPlacesList(list);
     };
 
     fetchPlaces();
-    console.log(placesList);
+    // console.log(placesList);
   }, [address]); // also changed to depend on location, not address
 
   return (
@@ -153,7 +153,7 @@ export default function CAppbar() {
                         <Text>{`${p.admin1}, `}</Text>
                         <Text>{`${p.country}`}</Text>
                       </>
-                    } onPress={_ => {setLocation(`${p.name}, ${p.admin1}, ${p.country}`); console.log("loc", location); setVisible(false);}}
+                    } onPress={_ => {setLocation(`${p.name}, ${p.admin1}, ${p.country}`); console.log("loc", p.name); setVisible(false);}}
                   ></Menu.Item>
                 </View>
               );
