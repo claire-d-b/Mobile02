@@ -5,7 +5,8 @@ import { Appbar, Text, IconButton, Icon, Menu } from "react-native-paper";
 import { evaluate } from "mathjs";
 import CTextInput from "./CTextInput";
 import CBottomNav from "./CBottomNav";
-import { useLocation, getPlacesList, getLocationName } from "./useLocation";
+import { useLocation, getPlacesList, getLocationName} from "./useLocation";
+import { getForecasts } from "./ensemble";
 
 const messages = [
   "7",
@@ -44,7 +45,8 @@ interface Coordinates {
 }
 
 export default function CAppbar() {
-  const { address: detectedAddress } = useLocation();
+  // const [weatherData, setWeatherData] = useState({})
+  const { address: detectedAddress, coords, weatherData, loading } = useLocation();
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [placesList, setPlacesList] = useState<Place[]>([]);
@@ -161,6 +163,7 @@ export default function CAppbar() {
 
           { !visible && <CBottomNav
             location={location}
+            weatherData={weatherData}
             style={{
               height: "100%",
               paddingBottom: 40,

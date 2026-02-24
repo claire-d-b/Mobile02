@@ -11,7 +11,7 @@ interface EnsembleParams {
 	models: string;
 };
 
-export const getWeatherEnsembleData = async ({ ...params }: EnsembleParams) => {
+export const getForecasts = async ({ ...params }: EnsembleParams) => {
     const url = "https://ensemble-api.open-meteo.com/v1/ensemble";
     const responses = await fetchWeatherApi(url, params);
 

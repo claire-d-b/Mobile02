@@ -3,7 +3,9 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { useState, useEffect } from "react";
 import { Platform, Alert } from "react-native";
 import { fetchWeatherApi } from "openmeteo";
-import { getWeatherEnsembleData } from "./ensemble";
+import { getForecasts } from "./ensemble";
+import { WeatherData } from "./CBottomNav";
+
 
 interface Coords {
   latitude: number;
@@ -89,35 +91,35 @@ interface WeatherParams {
   current: string;
 }
 
-const getWeather = async ({ latitude, longitude, hourly, current }: WeatherParams) => {
-  try {
-    const params = { latitude, longitude, hourly, current };
-    const url = "https://api.open-meteo.com/v1/forecast";
-    const responses = await fetchWeatherApi(url, params);
-    const response = responses[0];
+// const getWeather = async ({ latitude, longitude, hourly, current }: WeatherParams) => {
+//   try {
+//     const params = { latitude, longitude, hourly, current };
+//     const url = "https://api.open-meteo.com/v1/forecast";
+//     const responses = await fetchWeatherApi(url, params);
+//     const response = responses[0];
 
-    const utcOffsetSeconds = response.utcOffsetSeconds();
-    const ncurrent = response.current()!;
-    const nhourly = response.hourly()!;
+//     const utcOffsetSeconds = response.utcOffsetSeconds();
+//     const ncurrent = response.current()!;
+//     const nhourly = response.hourly()!;
 
-    return {
-      current: {
-        time: new Date((Number(ncurrent.time()) + utcOffsetSeconds) * 1000),
-        temperature_2m: ncurrent.variables(0)!.value(),
-      },
-      hourly: {
-        time: Array.from(
-          { length: (Number(nhourly.timeEnd()) - Number(nhourly.time())) / nhourly.interval() },
-          (_, i) => new Date((Number(nhourly.time()) + i * nhourly.interval() + utcOffsetSeconds) * 1000),
-        ),
-        temperature_2m: nhourly.variables(0)!.valuesArray(),
-      },
-    };
-  } catch (e) {
-    console.error("Weather fetch failed:", e);
-    return null;
-  }
-};
+//     return {
+//       current: {
+//         time: new Date((Number(ncurrent.time()) + utcOffsetSeconds) * 1000),
+//         temperature_2m: ncurrent.variables(0)!.value(),
+//       },
+//       hourly: {
+//         time: Array.from(
+//           { length: (Number(nhourly.timeEnd()) - Number(nhourly.time())) / nhourly.interval() },
+//           (_, i) => new Date((Number(nhourly.time()) + i * nhourly.interval() + utcOffsetSeconds) * 1000),
+//         ),
+//         temperature_2m: nhourly.variables(0)!.valuesArray(),
+//       },
+//     };
+//   } catch (e) {
+//     console.error("Weather fetch failed:", e);
+//     return null;
+//   }
+// };
 
 export const getPlacesList = async (location: string) => {
   if (!location) return [];
@@ -132,60 +134,69 @@ export const getPlacesList = async (location: string) => {
   }
 };
 
+interface Props {
+  weatherData: object;
+  setWeatherData: Function;
+}
+
 export const useLocation = () => {
-  const [address, setAddress] = useState<string>("");
-  const [coords, setCoords] = useState<Coords>({ latitude: 48.8397, longitude: 2.2421 });
-  const [weatherData, setWeatherData] = useState<Awaited<ReturnType<typeof getWeather>>>(null);
-  const [loading, setLoading] = useState(true);
-  // Fetch forecast weather when coords change
-  useEffect(() => {
-    getWeather({
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      hourly: ["temperature_2m"],
-      current: "temperature_2m",
-    }).then(setWeatherData);
-  }, []);
+    const [address, setAddress] = useState<string>("");
+    const [coords, setCoords] = useState<Coords>({ latitude: 48.8397, longitude: 2.2421 });
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [loading, setLoading] = useState(true);
+    // Fetch forecast weather when coords change
+    // useEffect(() => {
+    //   getWeather({
+    //     latitude: coords.latitude,
+    //     longitude: coords.longitude,
+    //     hourly: ["temperature_2m"],
+    //     current: "temperature_2m",
+    //   }).then(setWeatherData);
+    // }, []);
 
-  // Fetch ensemble weather when coords change
-  useEffect(() => {
-    getWeatherEnsembleData({
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      daily: ["weather_code", "temperature_2m_max", "temperature_2m_min", "wind_speed_10m_max"],
-      hourly: ["temperature_2m", "weather_code", "wind_speed_10m"],
-      current: ["temperature_2m", "weather_code", "wind_speed_10m"],
-    });
-  }, []);
-
-  // Get location on mount and track changes
-  useEffect(() => {
-    let subscriber: Location.LocationSubscription | null = null;
-
-    const init = async () => {
-      const initialCoords = await getLocation();
-      const currentCoords = {
-        latitude: initialCoords?.latitude ?? 48.89632,
-        longitude: initialCoords?.longitude ?? 2.31852,
+    // Fetch ensemble weather when coords change
+    useEffect(() => {
+      const fetchForecasts = async () => {
+        const response = await getForecasts({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          daily: ["weather_code", "temperature_2m_max", "temperature_2m_min", "wind_speed_10m_max"],
+          hourly: ["temperature_2m", "weather_code", "wind_speed_10m"],
+          current: ["temperature_2m", "weather_code", "wind_speed_10m"],
+        });
+      setWeatherData(response);
+      console.log("resp", response);
       };
-      setCoords(currentCoords);
+      fetchForecasts();
+    }, [coords]);
+    // Get location on mount and track changes
+    useEffect(() => {
+      let subscriber: Location.LocationSubscription | null = null;
 
-      const name = await getLocationName(currentCoords);
-      setAddress(name ?? "");
-      setLoading(false);
+      const init = async () => {
+        const initialCoords = await getLocation();
+        const currentCoords = {
+          latitude: initialCoords?.latitude ?? 48.89632,
+          longitude: initialCoords?.longitude ?? 2.31852,
+        };
+        setCoords(currentCoords);
 
-      subscriber = await trackLocation(async (newCoords) => {
-        setCoords(newCoords);
-        const newAddress = await getLocationName(newCoords);
-        setAddress(newAddress ?? "");
-      });
-    };
+        const name = await getLocationName(currentCoords);
+        setAddress(name ?? "");
+        setLoading(false);
 
-    init();
-    return () => subscriber?.remove();
-  }, []);
+        subscriber = await trackLocation(async (newCoords) => {
+          setCoords(newCoords);
+          const newAddress = await getLocationName(newCoords);
+          setAddress(newAddress ?? "");
+        });
+      };
 
-  return { address, coords, weatherData, loading };
+      init();
+      return () => subscriber?.remove();
+    }, []);
+    console.log(weatherData)
+    return { address, coords, weatherData, loading };
 };
 
 export default useLocation;

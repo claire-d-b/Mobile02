@@ -3,7 +3,8 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { useState, useEffect } from "react";
 import { Platform, Alert } from "react-native";
 import { fetchWeatherApi } from "openmeteo";
-import { getWeatherEnsembleData } from "./ensemble";
+import { getForecasts } from "./ensemble";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 
 interface Coords {
   latitude: number;
@@ -149,7 +150,7 @@ export const useLocation = () => {
 
   // Fetch ensemble weather when coords change
   useEffect(() => {
-    getWeatherEnsembleData({
+    getForecasts({
       latitude: coords.latitude,
       longitude: coords.longitude,
       daily: ["temperature_2m_min", "temperature_2m_mean", "temperature_2m_max", "precipitation_sum", "precipitation_hours", "snowfall_sum", "rain_sum", "wind_speed_10m_mean", "wind_speed_10m_min", "wind_speed_10m_max"],

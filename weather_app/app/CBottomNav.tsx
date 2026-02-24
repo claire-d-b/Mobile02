@@ -1,12 +1,37 @@
 import * as React from "react";
 import { BottomNavigation, Text } from "react-native-paper";
 import { View } from "react-native";
+import getWeatherCode from "./weatherCodes";
 
-interface Prop {
-  location: string;
+// types.ts
+export interface WeatherData {
+  current: {
+    time: Date;
+    temperature_2m: number;
+    weather_code: number;
+    wind_speed_10m: number;
+  };
+  hourly: {
+    time: Date[];
+    temperature_2m: Float32Array | null;
+    weather_code: Float32Array | null;
+    wind_speed_10m: Float32Array | null;
+  };
+  daily: {
+    time: Date[];
+    temperature_2m_max: Float32Array | null;
+    temperature_2m_min: Float32Array | null;
+    weather_code: Float32Array | null;
+    wind_speed_10m_max: Float32Array | null;
+  };
 }
 
-const CurrRoute = ({ location }: Prop) => (
+interface RouteProps {
+  location: string;
+  data: WeatherData | null;
+}
+
+const CurrRoute = ({location, data}: RouteProps) => (
   <View
     style={{
       width: "100%",
@@ -21,10 +46,11 @@ const CurrRoute = ({ location }: Prop) => (
     <Text>Currently</Text>
     <View style={{ padding: 35 }}>
       <Text>{location}</Text>
+      <Text>{getWeatherCode(data?.current.weather_code)}</Text>
     </View>
   </View>
 );
-const TodayRoute = ({ location }: Prop) => (
+const TodayRoute = ({location, data}: RouteProps) => (
   <View
     style={{
       width: "100%",
@@ -38,12 +64,12 @@ const TodayRoute = ({ location }: Prop) => (
   >
     <Text>Today</Text>
     <View style={{ padding: 35 }}>
-      <Text>{location}</Text>
+      <Text>{data?.hourly.weather_code}</Text>
     </View>
   </View>
 );
 
-const WeeklyRoute = ({ location }: Prop) => (
+const WeeklyRoute = ({location, data}: RouteProps) => (
   <View
     style={{
       width: "100%",
@@ -57,17 +83,18 @@ const WeeklyRoute = ({ location }: Prop) => (
   >
     <Text>Weekly</Text>
     <View style={{ padding: 35 }}>
-      <Text>{location}</Text>
+      <Text>{data?.daily.weather_code}</Text>
     </View>
   </View>
 );
 
 interface Props {
   location: string;
+  weatherData: WeatherData | null;
   style: {};
 }
 
-const CBottomNav = ({ location, style }: Props) => {
+const CBottomNav = ({ location, weatherData, style }: Props) => {
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
     {
@@ -90,18 +117,11 @@ const CBottomNav = ({ location, style }: Props) => {
     },
   ]);
 
-  const renderScene = ({ route }: { route: { key: string } }) => {
-    switch (route.key) {
-      case "currently":
-        return <CurrRoute location={location} />;
-      case "today":
-        return <TodayRoute location={location} />;
-      case "weekly":
-        return <WeeklyRoute location={location} />;
-      default:
-        return null;
-    }
-  };
+  const renderScene = BottomNavigation.SceneMap({
+    currently: () => <CurrRoute location={location} data={weatherData} />,
+    today: () => <TodayRoute location={location} data={weatherData} />,
+    weekly: () => <WeeklyRoute location={location} data={weatherData} />,
+  });
 
   return (
     <BottomNavigation

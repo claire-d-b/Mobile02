@@ -11,7 +11,7 @@ interface EnsembleParams {
     current: string[];
 };
 
-export const getWeatherEnsembleData = async ({ ...params }: EnsembleParams) => {
+export const getForecasts = async ({ ...params }: EnsembleParams) => {
     const url = "https://api.open-meteo.com/v1/forecast";
     const responses = await fetchWeatherApi(url, params);
 
@@ -24,11 +24,11 @@ export const getWeatherEnsembleData = async ({ ...params }: EnsembleParams) => {
     const elevation = response.elevation();
     const utcOffsetSeconds = response.utcOffsetSeconds();
 
-    console.log(
-        `\nCoordinates: ${latitude}°N ${longitude}°E`,
-        `\nElevation: ${elevation}m asl`,
-        `\nTimezone difference to GMT+0: ${utcOffsetSeconds}s`,
-    );
+    // console.log(
+    //     `\nCoordinates: ${latitude}°N ${longitude}°E`,
+    //     `\nElevation: ${elevation}m asl`,
+    //     `\nTimezone difference to GMT+0: ${utcOffsetSeconds}s`,
+    // );
 
     const current = response.current()!;
     const hourly = response.hourly()!;
@@ -63,14 +63,16 @@ export const getWeatherEnsembleData = async ({ ...params }: EnsembleParams) => {
         },
     };
 
+    return weatherData
+
     // The 'weatherData' object now contains a simple structure, with arrays of datetimes and weather information
-    console.log(
-        `\nCurrent time: ${weatherData.current.time}\n`,
-        `\nCurrent temperature_2m: ${weatherData.current.temperature_2m}`,
-        `\nCurrent weather_code: ${weatherData.current.weather_code}`,
-        `\nCurrent wind_speed_10m: ${weatherData.current.wind_speed_10m}`,
-    );
-    console.log("\nHourly data:\n", weatherData.hourly)
-    console.log("\nDaily data:\n", weatherData.daily)
+    // console.log(
+    //     `\nCurrent time: ${weatherData.current.time}\n`,
+    //     `\nCurrent temperature_2m: ${weatherData.current.temperature_2m}`,
+    //     `\nCurrent weather_code: ${weatherData.current.weather_code}`,
+    //     `\nCurrent wind_speed_10m: ${weatherData.current.wind_speed_10m}`,
+    // );
+    // console.log("\nHourly data:\n", weatherData.hourly)
+    // console.log("\nDaily data:\n", weatherData.daily)
 
 }
