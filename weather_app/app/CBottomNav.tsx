@@ -120,7 +120,7 @@ const WeeklyRoute = ({location, weekly}: WeeklyRouteProps) => (
     <View style={{ padding: 20, width: "100%" }}>
       { !!weekly?.length && weekly.map((w, i) => {
         return (<View key={`weekly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
-        <Text>{w.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text>{w.time.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
         <Text>{w.temperature_2m_min?.toFixed(1)}°C</Text>
         <Text>{w.temperature_2m_max?.toFixed(1)}km/h</Text>
         <Text>{truncate(getWeatherCode(w.weather_code), 5)}</Text>
