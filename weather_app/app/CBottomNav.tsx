@@ -74,6 +74,9 @@ interface WeeklyRouteProps {
   }[];
 }
 
+const truncate = (str: string, maxLength: number = 5) =>
+  str.length > maxLength ? str.slice(0, maxLength) + "…" : str;
+
 const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
   <View
     style={{
@@ -87,14 +90,14 @@ const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
     }}
   >
     <Text>Today</Text>
-    <View style={{ padding: 20, width: "100%", width: "100%", height: "100%", overflow: "scroll" }}>
+    <View style={{ padding: 20, width: "100%", height: "100%", overflow: "scroll" }}>
       <Text>{location}</Text>
-      <Text>{getWeatherCode(todayHourly?.[0].weather_code)}</Text>
       { !!todayHourly?.length && todayHourly.map((h, i) => {
         return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
         <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
         <Text>{h.temperature_2m?.toFixed(1)}°C</Text>
         <Text>{h.wind_speed_10m?.toFixed(1)}km/h</Text>
+        <Text>{truncate(getWeatherCode(h.weather_code), 5)}</Text>
         </View>
       )})}
     </View>
@@ -115,11 +118,12 @@ const WeeklyRoute = ({location, weekly}: WeeklyRouteProps) => (
   >
     <Text>Weekly</Text>
     <View style={{ padding: 20, width: "100%" }}>
-      { !!weekly?.length && weekly.map((h, i) => {
+      { !!weekly?.length && weekly.map((w, i) => {
         return (<View key={`weekly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
-        <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
-        <Text>{h.temperature_2m_min?.toFixed(1)}°C</Text>
-        <Text>{h.temperature_2m_max?.toFixed(1)}km/h</Text>
+        <Text>{w.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text>{w.temperature_2m_min?.toFixed(1)}°C</Text>
+        <Text>{w.temperature_2m_max?.toFixed(1)}km/h</Text>
+        <Text>{truncate(getWeatherCode(w.weather_code), 5)}</Text>
         </View>
       )})}
     </View>
