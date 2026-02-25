@@ -46,6 +46,9 @@ interface Coordinates {
 
 export default function CAppbar() {
   // const [weatherData, setWeatherData] = useState({})
+  const [selectedCoords, setSelectedCoords] = useState<Coordinates | undefined>(
+    undefined,
+  );
   const {
     address: detectedAddress,
     coords,
@@ -56,6 +59,7 @@ export default function CAppbar() {
   const [location, setLocation] = useState("");
   const [placesList, setPlacesList] = useState<Place[]>([]);
   const [visible, setVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -102,10 +106,13 @@ export default function CAppbar() {
             onBlur={(e: any) => {
               setLocation(address);
               setVisible(false);
+              setLocation("");
+              setErrorMessage("Location not found.");
             }}
             onChangeText={(text: string) => {
               setAddress(text);
               setVisible(true);
+              setErrorMessage("");
             }}
             textColor="white"
             label="Location"
@@ -132,6 +139,8 @@ export default function CAppbar() {
           size={20}
           onPress={() => {
             setLocation(detectedAddress);
+            setSelectedCoords(undefined);
+            setErrorMessage("");
             setVisible(false);
           }}
           style={{ transform: "rotate(45deg);" }}
@@ -169,15 +178,31 @@ export default function CAppbar() {
                     onPress={(_) => {
                       setLocation(`${p.name}, ${p.admin1}, ${p.country}`);
                       console.log("loc", p.name);
+                      setSelectedCoords({
+                        latitude: p.latitude,
+                        longitude: p.longitude,
+                      });
+                      setErrorMessage("");
                       setVisible(false);
                     }}
                   ></Menu.Item>
                 </View>
               );
             })}
-
+          {/* {errorMessage !== "" && (
+            <View
+              style={{
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <Text>{errorMessage}</Text>
+            </View>
+          )} */}
           {!visible && (
             <CBottomNav
+              message={errorMessage}
               location={location}
               weatherData={weatherData}
               style={{

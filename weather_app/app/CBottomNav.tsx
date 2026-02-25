@@ -31,7 +31,7 @@ interface RouteProps {
   data: WeatherData | null;
 }
 
-const CurrRoute = ({location, data}: RouteProps) => (
+const CurrRoute = ({ location, data }: RouteProps) => (
   <View
     style={{
       width: "100%",
@@ -77,7 +77,7 @@ interface WeeklyRouteProps {
 const truncate = (str: string, maxLength: number = 5) =>
   str.length > maxLength ? str.slice(0, maxLength) + "…" : str;
 
-const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
+const TodayRoute = ({ location, todayHourly }: TodayRouteProps) => (
   <View
     style={{
       width: "100%",
@@ -90,21 +90,39 @@ const TodayRoute = ({location, todayHourly}: TodayRouteProps) => (
     }}
   >
     <Text>Today</Text>
-    <View style={{ padding: 20, width: "100%", height: "100%", overflow: "scroll" }}>
+    <View
+      style={{ padding: 20, width: "100%", height: "100%", overflow: "scroll" }}
+    >
       <Text>{location}</Text>
-      { !!todayHourly?.length && todayHourly.map((h, i) => {
-        return (<View key={`hourly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
-        <Text>{h.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
-        <Text>{h.temperature_2m?.toFixed(1)}°C</Text>
-        <Text>{h.wind_speed_10m?.toFixed(1)}km/h</Text>
-        <Text>{truncate(getWeatherCode(h.weather_code), 5)}</Text>
-        </View>
-      )})}
+      {!!todayHourly?.length &&
+        todayHourly.map((h, i) => {
+          return (
+            <View
+              key={`hourly_${i}`}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-around",
+                alignItems: "center",
+              }}
+            >
+              <Text>
+                {h.time.toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
+              <Text>{h.temperature_2m?.toFixed(1)}°C</Text>
+              <Text>{h.wind_speed_10m?.toFixed(1)}km/h</Text>
+              <Text>{truncate(getWeatherCode(h.weather_code), 5)}</Text>
+            </View>
+          );
+        })}
     </View>
   </View>
 );
 
-const WeeklyRoute = ({location, weekly}: WeeklyRouteProps) => (
+const WeeklyRoute = ({ location, weekly }: WeeklyRouteProps) => (
   <View
     style={{
       width: "100%",
@@ -118,26 +136,43 @@ const WeeklyRoute = ({location, weekly}: WeeklyRouteProps) => (
   >
     <Text>Weekly</Text>
     <View style={{ padding: 20, width: "100%" }}>
-      { !!weekly?.length && weekly.map((w, i) => {
-        return (<View key={`weekly_${i}`} style={{display: "flex", flexDirection: "row", justifyContent: "space-around", alignItems: "center"}}>
-        <Text>{w.time.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
-        <Text>{w.temperature_2m_min?.toFixed(1)}°C</Text>
-        <Text>{w.temperature_2m_max?.toFixed(1)}km/h</Text>
-        <Text>{truncate(getWeatherCode(w.weather_code), 5)}</Text>
-        </View>
-      )})}
+      {!!weekly?.length &&
+        weekly.map((w, i) => {
+          return (
+            <View
+              key={`weekly_${i}`}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-around",
+                alignItems: "center",
+              }}
+            >
+              <Text>
+                {w.time.toLocaleDateString("fr-FR", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                })}
+              </Text>
+              <Text>{w.temperature_2m_min?.toFixed(1)}°C</Text>
+              <Text>{w.temperature_2m_max?.toFixed(1)}km/h</Text>
+              <Text>{truncate(getWeatherCode(w.weather_code), 5)}</Text>
+            </View>
+          );
+        })}
     </View>
-    <Text>{getWeatherCode(weekly?.[0].weather_code)}</Text>
   </View>
 );
 
 interface Props {
+  message: string;
   location: string;
   weatherData: WeatherData | null;
   style: {};
 }
 
-const CBottomNav = ({ location, weatherData, style }: Props) => {
+const CBottomNav = ({ message, location, weatherData, style }: Props) => {
   const today = new Date();
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
@@ -161,31 +196,88 @@ const CBottomNav = ({ location, weatherData, style }: Props) => {
     },
   ]);
 
-  const todayHourly = weatherData?.hourly.time
-    .map((time, i) => ({
+  const todayHourly =
+    weatherData?.hourly.time
+      .map((time, i) => ({
+        time,
+        temperature_2m: weatherData.hourly.temperature_2m?.[i],
+        weather_code: weatherData.hourly.weather_code?.[i],
+        wind_speed_10m: weatherData.hourly.wind_speed_10m?.[i],
+      }))
+      .filter(({ time }) => {
+        const timeUTC = Date.UTC(
+          time.getUTCFullYear(),
+          time.getUTCMonth(),
+          time.getUTCDate(),
+        );
+        const todayUTC = Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+        );
+        return timeUTC === todayUTC;
+      }) ?? [];
+  const weekly =
+    weatherData?.daily.time.map((time, i) => ({
       time,
-      temperature_2m: weatherData.hourly.temperature_2m?.[i],
-      weather_code: weatherData.hourly.weather_code?.[i],
-      wind_speed_10m: weatherData.hourly.wind_speed_10m?.[i],
-    }))
-    .filter(({ time }) => {
-      const timeUTC = Date.UTC(time.getUTCFullYear(), time.getUTCMonth(), time.getUTCDate());
-      const todayUTC = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-      return timeUTC === todayUTC;
-}) ?? []
-  const weekly = weatherData?.daily.time.map((time, i) => ({
-  time,
-  temperature_2m_max: weatherData.daily.temperature_2m_max?.[i],
-  temperature_2m_min: weatherData.daily.temperature_2m_min?.[i],
-  weather_code: weatherData.daily.weather_code?.[i],
-  wind_speed_10m_max: weatherData.daily.wind_speed_10m_max?.[i],
-})) ?? [];
-
+      temperature_2m_max: weatherData.daily.temperature_2m_max?.[i],
+      temperature_2m_min: weatherData.daily.temperature_2m_min?.[i],
+      weather_code: weatherData.daily.weather_code?.[i],
+      wind_speed_10m_max: weatherData.daily.wind_speed_10m_max?.[i],
+    })) ?? [];
 
   const renderScene = BottomNavigation.SceneMap({
-    currently: () => <CurrRoute location={location} data={weatherData} />,
-    today: () => <TodayRoute location={location} todayHourly={todayHourly} />,
-    weekly: () => <WeeklyRoute location={location} weekly={weekly} />,
+    currently: () =>
+      message === "" ? (
+        <CurrRoute location={location} data={weatherData} />
+      ) : (
+        <View
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text>{message}</Text>
+        </View>
+      ),
+    today: () =>
+      message === "" ? (
+        <TodayRoute location={location} todayHourly={todayHourly} />
+      ) : (
+        <View
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text>{message}</Text>
+        </View>
+      ),
+    weekly: () =>
+      message === "" ? (
+        <WeeklyRoute location={location} weekly={weekly} />
+      ) : (
+        <View
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text>{message}</Text>
+        </View>
+      ),
   });
 
   return (

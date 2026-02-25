@@ -6,10 +6,9 @@ import { fetchWeatherApi } from "openmeteo";
 import { getForecasts } from "./ensemble";
 import { WeatherData } from "./CBottomNav";
 
-
 interface Coords {
-  latitude: number;
-  longitude: number;
+  latitude: number | undefined;
+  longitude: number | undefined;
 }
 
 const requestPermission = async (): Promise<boolean> => {
@@ -54,9 +53,9 @@ const getLocation = async (): Promise<Coords | null> => {
   }
 
   try {
-    const { coords } = await Location.getCurrentPositionAsync({
+    const { coords } = (await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
-    }) || { latitude: 48.8397, longitude: 2.2421 };
+    })) || { latitude: 48.8397, longitude: 2.2421 };
     return { latitude: coords.latitude, longitude: coords.longitude };
   } catch (e) {
     console.warn("Could not get position:", e);
@@ -71,15 +70,33 @@ export const trackLocation = async (
   if (!granted) return null;
 
   return await Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-    ({ coords }) => onChange({ latitude: coords.latitude, longitude: coords.longitude }),
+    {
+      accuracy: Location.Accuracy.High,
+      timeInterval: 5000,
+      distanceInterval: 10,
+    },
+    ({ coords }) =>
+      onChange({ latitude: coords.latitude, longitude: coords.longitude }),
   );
 };
 
-export const getLocationName = async (coords: Coords): Promise<string | null> => {
-  const [place] = await Location.reverseGeocodeAsync(coords);
+export const getLocationName = async (
+  coords: Coords,
+): Promise<string | null> => {
+  if (coords.latitude === undefined || coords.longitude === undefined)
+    return null;
+  const [place] = await Location.reverseGeocodeAsync({
+    latitude: coords.latitude,
+    longitude: coords.longitude,
+  });
   if (!place) return null;
-  return [place.streetNumber, place.street, place.city, place.region, place.country]
+  return [
+    place.streetNumber,
+    place.street,
+    place.city,
+    place.region,
+    place.country,
+  ]
     .filter(Boolean)
     .join(", ");
 };
@@ -139,64 +156,78 @@ interface Props {
   setWeatherData: Function;
 }
 
-export const useLocation = () => {
-    const [address, setAddress] = useState<string>("");
-    const [coords, setCoords] = useState<Coords>({ latitude: 48.8397, longitude: 2.2421 });
-    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-    const [loading, setLoading] = useState(true);
-    // Fetch forecast weather when coords change
-    // useEffect(() => {
-    //   getWeather({
-    //     latitude: coords.latitude,
-    //     longitude: coords.longitude,
-    //     hourly: ["temperature_2m"],
-    //     current: "temperature_2m",
-    //   }).then(setWeatherData);
-    // }, []);
+export const useLocation = (externalCoords?: {
+  latitude: number;
+  longitude: number;
+}) => {
+  const [address, setAddress] = useState<string>("");
+  const [coords, setCoords] = useState<Coords>({
+    latitude: undefined,
+    longitude: undefined,
+  });
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const activeCoords = externalCoords ?? coords;
+  // Fetch forecast weather when coords change
+  // useEffect(() => {
+  //   getWeather({
+  //     latitude: coords.latitude,
+  //     longitude: coords.longitude,
+  //     hourly: ["temperature_2m"],
+  //     current: "temperature_2m",
+  //   }).then(setWeatherData);
+  // }, []);
 
-    // Fetch ensemble weather when coords change
-    useEffect(() => {
-      const fetchForecasts = async () => {
-        const response = await getForecasts({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          daily: ["weather_code", "temperature_2m_max", "temperature_2m_min", "wind_speed_10m_max"],
-          hourly: ["temperature_2m", "weather_code", "wind_speed_10m"],
-          current: ["temperature_2m", "weather_code", "wind_speed_10m"],
-        });
+  // Fetch ensemble weather when coords change
+  useEffect(() => {
+    const fetchForecasts = async () => {
+      if (coords.latitude === undefined || coords.longitude === undefined)
+        return;
+      const response = await getForecasts({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        daily: [
+          "weather_code",
+          "temperature_2m_max",
+          "temperature_2m_min",
+          "wind_speed_10m_max",
+        ],
+        hourly: ["temperature_2m", "weather_code", "wind_speed_10m"],
+        current: ["temperature_2m", "weather_code", "wind_speed_10m"],
+      });
       setWeatherData(response);
       console.log("resp", response);
+    };
+    fetchForecasts();
+  }, [activeCoords.latitude, activeCoords.longitude]);
+  // Get location on mount and track changes
+  useEffect(() => {
+    let subscriber: Location.LocationSubscription | null = null;
+
+    const init = async () => {
+      const initialCoords = await getLocation();
+      const currentCoords = {
+        latitude: initialCoords?.latitude ?? 48.89632,
+        longitude: initialCoords?.longitude ?? 2.31852,
       };
-      fetchForecasts();
-    }, [coords]);
-    // Get location on mount and track changes
-    useEffect(() => {
-      let subscriber: Location.LocationSubscription | null = null;
+      setCoords(currentCoords);
 
-      const init = async () => {
-        const initialCoords = await getLocation();
-        const currentCoords = {
-          latitude: initialCoords?.latitude ?? 48.89632,
-          longitude: initialCoords?.longitude ?? 2.31852,
-        };
-        setCoords(currentCoords);
+      const name = await getLocationName(currentCoords);
+      setAddress(name ?? "");
+      setLoading(false);
 
-        const name = await getLocationName(currentCoords);
-        setAddress(name ?? "");
-        setLoading(false);
+      subscriber = await trackLocation(async (newCoords) => {
+        setCoords(newCoords);
+        const newAddress = await getLocationName(newCoords);
+        setAddress(newAddress ?? "");
+      });
+    };
 
-        subscriber = await trackLocation(async (newCoords) => {
-          setCoords(newCoords);
-          const newAddress = await getLocationName(newCoords);
-          setAddress(newAddress ?? "");
-        });
-      };
-
-      init();
-      return () => subscriber?.remove();
-    }, []);
-    console.log(weatherData)
-    return { address, coords, weatherData, loading };
+    init();
+    return () => subscriber?.remove();
+  }, []);
+  console.log(weatherData);
+  return { address, coords: activeCoords, weatherData, loading };
 };
 
 export default useLocation;
