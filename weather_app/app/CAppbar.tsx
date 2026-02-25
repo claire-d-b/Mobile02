@@ -5,7 +5,7 @@ import { Appbar, Text, IconButton, Icon, Menu } from "react-native-paper";
 import { evaluate } from "mathjs";
 import CTextInput from "./CTextInput";
 import CBottomNav from "./CBottomNav";
-import { useLocation, getPlacesList, getLocationName} from "./useLocation";
+import { useLocation, getPlacesList, getLocationName } from "./useLocation";
 import { getForecasts } from "./ensemble";
 
 const messages = [
@@ -46,12 +46,16 @@ interface Coordinates {
 
 export default function CAppbar() {
   // const [weatherData, setWeatherData] = useState({})
-  const { address: detectedAddress, coords, weatherData, loading } = useLocation();
+  const {
+    address: detectedAddress,
+    coords,
+    weatherData,
+    loading,
+  } = useLocation();
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [placesList, setPlacesList] = useState<Place[]>([]);
-  const [visible, setVisible] = useState(false)
-
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -97,8 +101,12 @@ export default function CAppbar() {
           <CTextInput
             onBlur={(e: any) => {
               setLocation(address);
+              setVisible(false);
             }}
-            onChangeText={(text: string) => {setAddress(text); setVisible(true)}}
+            onChangeText={(text: string) => {
+              setAddress(text);
+              setVisible(true);
+            }}
             textColor="white"
             label="Location"
             msg={address}
@@ -124,6 +132,7 @@ export default function CAppbar() {
           size={20}
           onPress={() => {
             setLocation(detectedAddress);
+            setVisible(false);
           }}
           style={{ transform: "rotate(45deg);" }}
         />
@@ -142,7 +151,8 @@ export default function CAppbar() {
             flexDirection: "column",
           }}
         >
-          {visible && !!placesList.length &&
+          {visible &&
+            !!placesList.length &&
             placesList.map((p, i) => {
               return (
                 <View key={`place_${i}`} style={{ display: "flex" }}>
@@ -155,20 +165,27 @@ export default function CAppbar() {
                         <Text>{`${p.admin1}, `}</Text>
                         <Text>{`${p.country}`}</Text>
                       </>
-                    } onPress={_ => {setLocation(`${p.name}, ${p.admin1}, ${p.country}`); console.log("loc", p.name); setVisible(false);}}
+                    }
+                    onPress={(_) => {
+                      setLocation(`${p.name}, ${p.admin1}, ${p.country}`);
+                      console.log("loc", p.name);
+                      setVisible(false);
+                    }}
                   ></Menu.Item>
                 </View>
               );
             })}
 
-          { !visible && <CBottomNav
-            location={location}
-            weatherData={weatherData}
-            style={{
-              height: "100%",
-              paddingBottom: 40,
-            }}
-          /> }
+          {!visible && (
+            <CBottomNav
+              location={location}
+              weatherData={weatherData}
+              style={{
+                height: "100%",
+                paddingBottom: 40,
+              }}
+            />
+          )}
         </View>
       </View>
     </View>
